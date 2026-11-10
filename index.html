@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Тест з SQLite — підготовка до проєкту</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#182235;--muted:#667085;--accent:#3157c8;--line:#dfe4ee;--good:#16834a;--bad:#c0392b;--soft:#edf1ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:#17264b;color:#fff;padding:32px 20px}header .wrap,main{max-width:950px;margin:auto}h1{font-size:clamp(1.7rem,4vw,2.35rem);line-height:1.2;margin:0 0 10px}header p{margin:0;color:#dce5ff;max-width:760px}
+main{padding:22px 16px 60px}.intro,.question,.result{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:0 0 16px;box-shadow:0 3px 14px #18223508}
+.intro{display:flex;gap:18px;justify-content:space-between;align-items:center;flex-wrap:wrap}.intro strong{font-size:1.1rem}.muted{color:var(--muted);font-size:.94rem}
+.progress{height:9px;background:#e8ebf3;border-radius:20px;overflow:hidden;margin-top:12px}.progress>div{height:100%;width:0;background:var(--accent);transition:width .2s}
+.qtop{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}.qnum{font-weight:750;color:var(--accent)}.level,.type{font-size:.78rem;color:#48536a;background:#f0f2f7;border-radius:20px;padding:3px 9px}.type{background:var(--soft);color:#2948a3}
+h2{font-size:1.08rem;margin:8px 0 13px;line-height:1.4}.options{display:grid;gap:9px}.option{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:9px;cursor:pointer}.option:hover{border-color:#9aabe8;background:#fafbff}.option input{margin-top:5px;accent-color:var(--accent)}input[type=text],textarea{width:100%;padding:11px 12px;border:1px solid #cbd3e2;border-radius:9px;font:inherit;color:var(--ink)}textarea{min-height:78px;resize:vertical}.match{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}.match label{font-weight:600}.match select{width:100%;padding:9px;border:1px solid #cbd3e2;border-radius:8px;font:inherit;background:white}
+.code{font: .92rem/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;background:#f3f5f9;padding:2px 5px;border-radius:4px;white-space:normal}.feedback{display:none;margin-top:12px;padding:10px 12px;border-radius:8px;font-size:.94rem}.feedback.show{display:block}.question.locked{opacity:.88}.question.locked .option{cursor:default}.question.locked .option:hover{border-color:var(--line);background:#fff}.question.locked input,.question.locked select{pointer-events:none;opacity:.8}.feedback.good{background:#e9f7ef;color:#12663b}.feedback.bad{background:#fff0ee;color:#9e2b20}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0}.btn{border:0;border-radius:9px;padding:12px 18px;font:600 1rem inherit;cursor:pointer}.primary{background:var(--accent);color:#fff}.secondary{background:#e8ebf3;color:#26334d}.btn:disabled{opacity:.45;cursor:not-allowed}
+.result{display:none}.result.show{display:block}.score{font-size:2rem;font-weight:800;color:var(--accent)}.result h2{font-size:1.3rem}.review{border-top:1px solid var(--line);padding:12px 0}.review strong{display:block}.small{font-size:.9rem;color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:.88rem;padding:10px}
+@media(max-width:600px){.match{grid-template-columns:1fr;gap:4px}.match select{margin-bottom:8px}.question,.intro,.result{padding:15px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>SQLite: підготовка до проєктного завдання</h1>
+<p>36 запитань різної складності про структуру реляційної бази даних, SQL-запити та роботу з даними. Типи завдань: одна відповідь, кілька відповідей, введення тексту й установлення відповідностей.</p>
+</div></header>
+<main>
+<section class="intro">
+<div><strong>Як працювати з тестом</strong><div class="muted">Оберіть або введіть відповіді. Після натискання «Перевірити» побачите результат, правильні відповіді та короткі пояснення. Зафіксуйте відповідь у кожному запитанні кнопкою під ним: після цього змінити її не можна. За кожне запитання — 1 бал.</div></div>
+<div><strong id="counter">Відповіли: 0 із 36</strong><div class="muted">Прогрес виконання</div><div class="progress"><div id="bar"></div></div></div>
+</section>
+<div id="quiz"></div>
+<div class="actions"><button class="btn primary" id="check">Завершити тест і отримати результат</button><button class="btn secondary" id="reset" disabled title="Повторне проходження вимкнено">Повторне проходження вимкнено</button></div>
+<section class="result" id="result" aria-live="polite"></section>
+<footer>Навчальний тест з основ SQLite · Можна проходити повторно</footer>
+</main>
+<script>
+const questions = [
+{t:"single",l:"Початковий",q:"Що таке реляційна база даних?",o:["Набір взаємопов’язаних таблиць","Один текстовий файл із командами","Програма для створення зображень","Список вебсторінок"],a:0,e:"Реляційна база даних організовує дані у таблицях, які можуть бути пов’язані між собою."},
+{t:"single",l:"Початковий",q:"Яка SQL-команда створює нову таблицю?",o:["MAKE TABLE","CREATE TABLE","NEW TABLE","INSERT TABLE"],a:1,e:"CREATE TABLE визначає нову таблицю та її стовпці."},
+{t:"single",l:"Початковий",q:"Для чого призначений первинний ключ (PRIMARY KEY)?",o:["Для сортування записів за алфавітом","Для однозначної ідентифікації кожного запису","Для зберігання лише тексту","Для автоматичного видалення дублікатів у всіх таблицях"],a:1,e:"Первинний ключ має однозначно визначати рядок таблиці; його значення не повторюються і не бувають NULL."},
+{t:"multi",l:"Початковий",q:"Які з наведених типів даних підтримує SQLite?",o:["INTEGER","REAL","TEXT","BLOB","BOOLEAN як окремий внутрішній тип зберігання"],a:[0,1,2,3],e:"Основні класи зберігання SQLite: NULL, INTEGER, REAL, TEXT і BLOB. Логічні значення зазвичай подають числами 0 і 1."},
+{t:"single",l:"Початковий",q:"Якою командою додають новий запис до таблиці?",o:["UPDATE","SELECT","INSERT INTO","ALTER TABLE"],a:2,e:"INSERT INTO додає рядок до таблиці."},
+{t:"single",l:"Початковий",q:"Яка команда отримує дані з таблиці?",o:["SELECT","DELETE","DROP","CREATE"],a:0,e:"SELECT використовується для вибірки даних."},
+{t:"text",l:"Початковий",q:"Напишіть ключове слово SQL, яке використовується для фільтрування рядків за умовою.",a:["where"],e:"WHERE задає умову відбору рядків."},
+{t:"single",l:"Початковий",q:"Що означає зовнішній ключ (FOREIGN KEY)?",o:["Поле, яке посилається на ключ в іншій або тій самій таблиці","Поле, яке обов’язково містить адресу сайту","Поле для автоматичного сортування","Назва резервної копії"],a:0,e:"Зовнішній ключ задає зв’язок із записом у пов’язаній таблиці."},
+{t:"multi",l:"Середній",q:"Які обмеження доречно застосувати до поля ID, що є первинним ключем?",o:["PRIMARY KEY","NOT NULL","UNIQUE","DEFAULT 'невідомо' обов’язково"],a:[0,1,2],e:"Первинний ключ у SQLite має унікальність і не може бути NULL. Окреме NOT NULL часто зайве, але допустиме."},
+{t:"single",l:"Середній",q:"Який тип зв’язку зазвичай виникає між таблицями «Книги» та «Видачі»?",o:["Один до одного","Один до багатьох","Багато до багатьох без проміжної таблиці","Зв’язку немає"],a:1,e:"Одна книга може фігурувати в багатьох записах видачі в різний час."},
+{t:"single",l:"Середній",q:"У таблиці видач потрібно зберігати ID книги та ID читача. Як правильно назвати ці поля за призначенням?",o:["Зовнішні ключі","Первинні ключі таблиці книг","Індекси сортування","Обчислювані поля"],a:0,e:"Ці поля посилаються на первинні ключі таблиць «Книги» та «Читачі»."},
+{t:"multi",l:"Середній",q:"Які твердження про INSERT INTO є правильними?",o:["Можна явно вказати назви стовпців","Одним запитом можна додати кілька рядків через VALUES","INSERT INTO використовується для видалення рядків","Якщо не вказати необов’язковий стовпець, може застосуватися DEFAULT або NULL"],a:[0,1,3],e:"INSERT INTO додає дані; перелік стовпців бажано вказувати явно. Значення пропущених стовпців визначаються DEFAULT або NULL, якщо це дозволено."},
+{t:"text",l:"Середній",q:"Напишіть оператор, який додає умову сортування результату за спаданням.",a:["order by"],e:"ORDER BY задає сортування, а DESC — спадання. Наприклад: ORDER BY year DESC."},
+{t:"single",l:"Середній",q:"Що поверне запит SELECT * FROM Books WHERE year > 2020; ?",o:["Усі книги, видані до 2020 року","Книги, у яких рік видання більший за 2020","Лише кількість книг","Видалить старі книги"],a:1,e:"WHERE year > 2020 залишає рядки, для яких рік більший за 2020."},
+{t:"single",l:"Середній",q:"Для чого використовують JOIN?",o:["Для об’єднання пов’язаних даних із кількох таблиць","Для перейменування бази даних","Для створення резервної копії","Для зміни типу файлу"],a:0,e:"JOIN дає змогу отримати спільний результат із таблиць, поєднавши рядки за умовою."},
+{t:"multi",l:"Середній",q:"Які умови можуть бути використані в реченні WHERE?",o:["Порівняння =, <, >, <=","BETWEEN","IN","GROUP BY"],a:[0,1,2],e:"WHERE містить умови фільтрації, зокрема порівняння, BETWEEN та IN. GROUP BY — окреме речення для групування."},
+{t:"single",l:"Середній",q:"Який результат дає COUNT(*)?",o:["Суму числових значень","Кількість рядків у вибірці або групі","Середнє значення","Найбільше значення"],a:1,e:"COUNT(*) рахує рядки, зокрема ті, де окремі поля мають NULL."},
+{t:"text",l:"Середній",q:"Яку функцію агрегування використовують, щоб обчислити суму значень стовпця?",a:["sum"],e:"SUM(назва_стовпця) обчислює суму значень."},
+{t:"single",l:"Середній",q:"Для чого застосовують GROUP BY?",o:["Щоб згрупувати рядки за однаковими значеннями одного або кількох стовпців","Щоб приховати стовпці","Щоб змінити назву таблиці","Щоб видалити повтори з таблиці назавжди"],a:0,e:"GROUP BY формує групи, над якими можна виконувати COUNT, SUM, AVG тощо."},
+{t:"multi",l:"Середній",q:"Які агрегатні функції є в SQLite?",o:["COUNT()","SUM()","AVG()","MAX()","MERGE()"],a:[0,1,2,3],e:"COUNT, SUM, AVG, MIN і MAX — типові агрегатні функції SQL/SQLite."},
+{t:"single",l:"Середній",q:"Чим WHERE відрізняється від HAVING?",o:["WHERE фільтрує рядки до групування, HAVING — групи після GROUP BY","WHERE працює лише з текстом","HAVING замінює JOIN","Різниці немає"],a:0,e:"WHERE відбирає рядки до агрегування; HAVING задає умови для сформованих груп."},
+{t:"match",l:"Середній",q:"Установіть відповідність між SQL-командою та її призначенням.",pairs:[["CREATE TABLE","Створення таблиці"],["INSERT INTO","Додавання записів"],["UPDATE","Зміна наявних записів"],["DELETE","Видалення записів"]],e:"Це чотири основні команди для створення таблиці та зміни її вмісту."},
+{t:"single",l:"Середній",q:"Який запит покаже лише книги автора «Шевченко» з таблиці Books?",o:["SELECT * FROM Books WHERE author = 'Шевченко';","SHOW Books author 'Шевченко';","SELECT author = 'Шевченко' FROM Books;","GET * Books IF author;"],a:0,e:"Умова WHERE author = 'Шевченко' відбирає рядки з потрібним автором."},
+{t:"multi",l:"Середній",q:"Що потрібно врахувати, щоб зовнішні ключі реально контролювали зв’язки в SQLite?",o:["Увімкнути PRAGMA foreign_keys = ON для з’єднання","Визначити FOREIGN KEY у схемі таблиці","Переконатися, що значення посилається на наявний ключ","Назвати всі таблиці великими літерами"],a:[0,1,2],e:"У SQLite контроль зовнішніх ключів потрібно ввімкнути для кожного з’єднання: PRAGMA foreign_keys = ON."},
+{t:"text",l:"Складний",q:"Напишіть ключове слово, яке усуває повторювані рядки з результату SELECT.",a:["distinct"],e:"SELECT DISTINCT повертає унікальні рядки результату."},
+{t:"single",l:"Складний",q:"Який тип JOIN повертає всі рядки лівої таблиці, навіть якщо відповідника в правій немає?",o:["INNER JOIN","LEFT JOIN","CROSS JOIN","SELF JOIN"],a:1,e:"LEFT JOIN зберігає всі рядки лівої таблиці; для відсутніх відповідників поля правої таблиці матимуть NULL."},
+{t:"single",l:"Складний",q:"Потрібно показати книги, які жодного разу не видавалися. Який підхід найдоречніший?",o:["INNER JOIN Books і Loans","LEFT JOIN Books до Loans та умова Loans.id IS NULL","ORDER BY Books.id","UPDATE Books SET id = NULL"],a:1,e:"LEFT JOIN знаходить усі книги, а перевірка NULL у таблиці видач залишає ті, для яких відповідника немає."},
+{t:"single",l:"Складний",q:"Який запит порахує кількість видач кожної книги?",o:["SELECT book_id, COUNT(*) FROM Loans GROUP BY book_id;","SELECT book_id, SUM(*) FROM Loans;","SELECT COUNT(book_id) FROM Books;","SELECT book_id FROM Loans ORDER BY COUNT;"],a:0,e:"Групування за book_id дає окрему групу для кожної книги, COUNT(*) рахує видачі."},
+{t:"multi",l:"Складний",q:"Які речення можуть бути частинами запиту з підрахунком найпопулярніших книг?",o:["JOIN","GROUP BY","ORDER BY COUNT(*) DESC","WHERE COUNT(*) > 2 без підзапиту чи HAVING","HAVING COUNT(*) > 2"],a:[0,1,2,4],e:"JOIN отримує назви книг, GROUP BY групує, ORDER BY сортує за кількістю, HAVING фільтрує групи. Агрегатну умову не задають безпосередньо у WHERE."},
+{t:"text",l:"Складний",q:"Напишіть оператор SQL для обмеження кількості рядків у результаті, наприклад першими п’ятьма.",a:["limit"],e:"LIMIT 5 обмежує результат п’ятьма рядками."},
+{t:"match",l:"Складний",q:"Установіть відповідність між фрагментом SQL та його результатом.",pairs:[["WHERE grade = 8","Відбір записів 8-го класу"],["ORDER BY name ASC","Сортування імен за зростанням"],["GROUP BY reader_id","Групування за читачем"],["COUNT(*)","Підрахунок рядків"]],e:"WHERE фільтрує, ORDER BY сортує, GROUP BY групує, COUNT рахує."},
+{t:"single",l:"Складний",q:"У таблиці Loans є поля book_id, reader_id, return_date. Як вибрати книги, які зараз на руках, якщо NULL означає, що книгу ще не повернули?",o:["WHERE return_date = NULL","WHERE return_date IS NULL","WHERE return_date == 'NULL'","WHERE return_date NOT NULL"],a:1,e:"Для перевірки NULL у SQL використовують IS NULL, а не оператор =."},
+{t:"single",l:"Складний",q:"Що станеться під час виконання DELETE FROM Students; без WHERE?",o:["Буде видалено всі рядки таблиці Students","Буде видалено лише перший рядок","Таблиця буде перейменована","Видалиться сама структура таблиці"],a:0,e:"DELETE без WHERE видаляє всі записи, але залишає таблицю та її структуру."},
+{t:"multi",l:"Складний",q:"Які твердження про нормальне проєктування трьох таблиць «Книги», «Читачі», «Видачі» правильні?",o:["Назву автора книги можна зберігати в таблиці Books","У Loans варто зберігати book_id та reader_id як зовнішні ключі","Кожен факт видачі — окремий рядок у Loans","Усі дані про читача потрібно дублювати в кожному рядку Books"],a:[0,1,2],e:"Довідкові сутності зберігаються окремо, а таблиця подій містить посилання на них. Це зменшує дублювання."},
+{t:"match",l:"Складний",q:"Установіть відповідність між вимогою проєкту та SQL-засобом.",pairs:[["Унікальний ідентифікатор запису","PRIMARY KEY"],["Зв’язок із записом іншої таблиці","FOREIGN KEY"],["Обов’язкове заповнення поля","NOT NULL"],["Значення має бути унікальним","UNIQUE"]],e:"Ці обмеження задають правила цілісності даних на рівні структури таблиці."},
+{t:"text",l:"Складний",q:"Напишіть назву речення SQL, яке групує записи, а потім дозволяє рахувати кількість записів у кожній групі.",a:["group by"],e:"GROUP BY створює групи для агрегатних обчислень."}
+];
+
+const quiz=document.getElementById('quiz');
+const labels={single:"Одна правильна відповідь",multi:"Оберіть усі правильні",text:"Введення тексту",match:"Установлення відповідностей"};
+const letters=["А","Б","В","Г","Д","Е"];
+let submitted=false;
+const lockedQuestions=new Set();
+function render(){
+ quiz.innerHTML="";
+ questions.forEach((q,i)=>{
+  const el=document.createElement('section');el.className='question';el.id='q'+i;
+  let body='';
+  if(q.t==='single'||q.t==='multi'){
+   body='<div class="options">'+q.o.map((v,j)=>`<label class="option"><input type="${q.t==='single'?'radio':'checkbox'}" name="q${i}" value="${j}"><span><b>${letters[j]}.</b> ${v}</span></label>`).join('')+'</div>';
+  }else if(q.t==='text'){
+   body=`<input type="text" id="ans${i}" autocomplete="off" placeholder="Введіть відповідь">`;
+  }else{
+   body='<div class="match">'+q.pairs.map((p,j)=>`<label>${p[0]}</label><select id="ans${i}_${j}"><option value="">— Оберіть відповідність —</option>${q.pairs.map((x,k)=>`<option value="${k}">${x[1]}</option>`).join('')}</select>`).join('')+'</div>';
+  }
+  el.innerHTML=`<div class="qtop"><span class="qnum">Запитання ${i+1}</span><span><span class="type">${labels[q.t]}</span> <span class="level">${q.l}</span></span></div><h2>${q.q}</h2>${body}<div class="actions" style="margin:12px 0 0"><button type="button" class="btn secondary lock-one" data-index="${i}">Зафіксувати відповідь</button></div><div class="feedback" id="fb${i}"></div>`;
+  quiz.appendChild(el);
+ });
+ updateProgress();
+}
+function answered(i){
+ const q=questions[i];
+ if(q.t==='single'||q.t==='multi')return !!document.querySelector(`input[name="q${i}"]:checked`);
+ if(q.t==='text')return document.getElementById('ans'+i).value.trim().length>0;
+ return q.pairs.some((_,j)=>document.getElementById(`ans${i}_${j}`).value!=="");
+}
+function updateProgress(){
+ const n=lockedQuestions.size;
+ document.getElementById('counter').textContent=`Зафіксовано відповідей: ${n} із ${questions.length}`;
+ document.getElementById('bar').style.width=(n/questions.length*100)+'%';
+}
+function lockQuestion(i){
+ if(submitted || lockedQuestions.has(i) || !answered(i)) return;
+ lockedQuestions.add(i);
+ const el=document.getElementById('q'+i);
+ el.classList.add('locked');
+ el.querySelectorAll('input,select').forEach(x=>x.disabled=true);
+ const b=el.querySelector('.lock-one');b.disabled=true;b.textContent='Відповідь зафіксовано';
+ updateProgress();
+}
+function norm(s){return s.toLowerCase().trim().replace(/ё/g,'е').replace(/\s+/g,' ').replace(/[;.]$/,'');}
+function checkOne(q,i){
+ if(q.t==='single'){const v=document.querySelector(`input[name="q${i}"]:checked`);return !!v&&Number(v.value)===q.a;}
+ if(q.t==='multi'){const v=[...document.querySelectorAll(`input[name="q${i}"]:checked`)].map(x=>Number(x.value)).sort((a,b)=>a-b);return JSON.stringify(v)===JSON.stringify([...q.a].sort((a,b)=>a-b));}
+ if(q.t==='text')return q.a.some(x=>norm(document.getElementById('ans'+i).value)===norm(x));
+ return q.pairs.every((_,j)=>document.getElementById(`ans${i}_${j}`).value===String(j));
+}
+function showAnswer(q,i){
+ if(q.t==='single')return `${letters[q.a]}. ${q.o[q.a]}`;
+ if(q.t==='multi')return q.a.map(x=>`${letters[x]}. ${q.o[x]}`).join('; ');
+ if(q.t==='text')return q.a[0].toUpperCase();
+ return q.pairs.map(p=>`${p[0]} — ${p[1]}`).join('; ');
+}
+document.getElementById('check').addEventListener('click',()=>{
+ if(submitted)return;submitted=true;
+ let score=0,unanswered=0;const details=[];
+ questions.forEach((q,i)=>{
+  const isLocked=lockedQuestions.has(i);const ok=isLocked&&checkOne(q,i);if(ok)score++;if(!isLocked)unanswered++;
+  const fb=document.getElementById('fb'+i);fb.className='feedback show '+(ok?'good':'bad');
+  fb.innerHTML=(!isLocked?'Відповідь не зафіксована. ':'')+(ok?'Правильно. ':'Потрібно виправити. ')+q.e+(ok?'':`<br><b>Правильна відповідь:</b> ${showAnswer(q,i)}`);
+  details.push({ok,i});
+ });
+ const pct=Math.round(score/questions.length*100);
+ let grade=pct>=90?'Відмінно!':pct>=75?'Добре!':pct>=60?'Задовільно.':'Варто повторити матеріал.';
+ document.querySelectorAll('#quiz input,#quiz select,#quiz button').forEach(x=>x.disabled=true);
+ document.getElementById('check').disabled=true;document.getElementById('reset').disabled=true;
+ const result=document.getElementById('result');result.classList.add('show');
+ result.innerHTML=`<h2>Результат тестування</h2><div class="score">${score} / ${questions.length} балів</div><p><b>${pct}% — ${grade}</b></p><p class="muted">Без відповіді залишилося: ${unanswered}. Перегляньте пояснення під кожним запитанням, щоб розібрати помилки.</p><div>${details.filter(x=>!x.ok).length?'<b>Запитання для повторення:</b> '+details.filter(x=>!x.ok).map(x=>x.i+1).join(', '):'Усі відповіді правильні — чудова робота!'}</div>`;
+ result.scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.getElementById('reset').addEventListener('click',()=>{});
+quiz.addEventListener('click',e=>{const b=e.target.closest('.lock-one');if(b)lockQuestion(Number(b.dataset.index));});
+quiz.addEventListener('change',updateProgress);quiz.addEventListener('input',updateProgress);
+render();
+</script>
+</body>
+</html>
